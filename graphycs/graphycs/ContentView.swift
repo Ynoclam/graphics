@@ -8,7 +8,7 @@ import SwiftUI
 import Charts
 import Combine
 
-struct StockPoint: Identifiable, Decodable {
+struct StockData: Identifiable, Decodable {
     let id = UUID()
     let date: String
     let open: Double
@@ -17,7 +17,7 @@ struct StockPoint: Identifiable, Decodable {
     let close: Double
     let volume: Double
     
-    var dateValue: Date? {
+    var time: Date? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         return formatter.date(from: date)
@@ -25,30 +25,31 @@ struct StockPoint: Identifiable, Decodable {
 }
 
 @MainActor
-class StockViewModel: ObservableObject {
-    @Published var data: [StockPoint] = []
+final class StockViewModel: ObservableObject {
+    @Published var stocks: [StockData] = []
     @Published var isLoading = false
     
-    func fetchData() async {
+    func loadData() async {
         isLoading = true
         
         let apiKey = "iDL9FuloaeiTy0c6eOQOg6h9YJNvumOq"
         let symbol = "AAPL"
-        let urlString = "https://financialmodelingprep.com/api/v3/historical-chart/1hour/\(symbol)?apikey=\(apiKey)"
+        let urlString = "https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=\(symbol)&apikey=\(apiKey)"
         
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            isLoading = false
-            return
-        }
+        guard let url = URL(string: urlString) else { return }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let decoded = try JSONDecoder().decode([StockPoint].self, from: data)
-            self.data = decoded.reversed()
-        } catch {
-            print("Ошибка загрузки данных: \(error.localizedDescription)")
-        }
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let decoder = JSONDecoder()
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                decoder.dateDecodingStrategy = .formatted(formatter)
+
+                let decoded = try decoder.decode([StockData].self, from: data)
+                self.stocks = decoded.reversed()
+            } catch {
+                print("Ошибка загрузки данных: \(error)")
+            }
         
         isLoading = false
     }
@@ -59,22 +60,27 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(alignment: .leading) {
+                Text("Цена закрытия")
+                    .font(.headline)
+                    .padding(.leading)
+                
                 if viewModel.isLoading {
-                    ProgressView("Загрузка данных...")
-                        .padding()
-                } else if viewModel.data.isEmpty {
-                    Text("Нет данных")
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if viewModel.stocks.isEmpty {
+                    Text("Нет данных для отображения")
                         .foregroundStyle(.secondary)
-                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    Chart(viewModel.data) { point in
-                        if let date = point.dateValue {
+                    Chart(viewModel.stocks) { item in
+                        if let time = item.time {
                             LineMark(
-                                x: .value("Время", date),
-                                y: .value("Цена", point.close)
+                                x: .value("Время", time),
+                                y: .value("Цена", item.close)
                             )
                             .foregroundStyle(.blue)
+                            .symbol(Circle())
                             .interpolationMethod(.cardinal)
                         }
                     }
@@ -84,19 +90,20 @@ struct ContentView: View {
                     .chartYAxis {
                         AxisMarks(position: .leading)
                     }
+                    .frame(height: 300)
                     .padding()
                 }
             }
-            .navigationTitle("График акций")
+            .navigationTitle("Swift Charts Example")
             .task {
-                await viewModel.fetchData()
+                await viewModel.loadData()
             }
         }
     }
 }
 
-@main
-struct FinanceApp: App {
+
+struct FinanceChartApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
