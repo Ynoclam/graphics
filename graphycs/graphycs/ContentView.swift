@@ -17,7 +17,7 @@ struct StockData: Identifiable, Decodable {
     
     var time: Date? {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter.date(from: date)
     }
 }
@@ -79,7 +79,7 @@ struct ContentView: View {
                                 y: .value("Цена", item.price)
                             )
                             .foregroundStyle(.blue)
-                            .symbol(Circle())
+                           // .symbol(Circle())
                             .interpolationMethod(.cardinal)
                         }
                     }
