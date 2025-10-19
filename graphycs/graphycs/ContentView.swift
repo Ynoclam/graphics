@@ -10,11 +10,9 @@ import Combine
 
 struct StockData: Identifiable, Decodable {
     let id = UUID()
+    let price: Double
+    let symbol:String
     let date: String
-    let open: Double
-    let high: Double
-    let low: Double
-    let close: Double
     let volume: Double
     
     var time: Date? {
@@ -36,7 +34,8 @@ final class StockViewModel: ObservableObject {
         let symbol = "AAPL"
         let urlString = "https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=\(symbol)&apikey=\(apiKey)"
         
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: urlString) else { return
+          }
         
         do {
                 let (data, _) = try await URLSession.shared.data(from: url)
@@ -77,7 +76,7 @@ struct ContentView: View {
                         if let time = item.time {
                             LineMark(
                                 x: .value("Время", time),
-                                y: .value("Цена", item.close)
+                                y: .value("Цена", item.price)
                             )
                             .foregroundStyle(.blue)
                             .symbol(Circle())
