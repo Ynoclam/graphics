@@ -41,7 +41,7 @@ final class StockViewModel: ObservableObject {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 let decoder = JSONDecoder()
                 let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                formatter.dateFormat = "yyyy-MM-dd"
                 decoder.dateDecodingStrategy = .formatted(formatter)
 
                 let decoded = try decoder.decode([StockData].self, from: data)
