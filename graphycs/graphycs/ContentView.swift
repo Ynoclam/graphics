@@ -72,19 +72,33 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    Chart(viewModel.stocks) { item in
-                        if let time = item.time {
+                    Chart {
+                        ForEach(
+                            viewModel.stocks.compactMap { item -> (Date, Double)? in
+                                guard
+                                    let date = item.time,
+                                    Calendar.current.component(.year, from: date) == 2025
+                                else {
+                                    return nil
+                                }
+                                return (date, item.price)
+                            },
+                            id: \.0
+                        ) { date, close in
                             LineMark(
-                                x: .value("Время", time),
-                                y: .value("Цена", item.price)
+                                x: .value("Дата", date),
+                                y: .value("Цена", close)
                             )
-                            .foregroundStyle(.blue)
-                           // .symbol(Circle())
-                            .interpolationMethod(.cardinal)
+                            .interpolationMethod(.catmullRom)
+                            .lineStyle(.init(lineWidth: 3))
+                            
+                            AreaMark(
+                                x: .value("Дата", date),
+                                y: .value("Цена", close)
+                            )
+                            .interpolationMethod(.catmullRom)
+                            .opacity(0.2)
                         }
-                    }
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .hour, count: 6))
                     }
                     .chartYAxis {
                         AxisMarks(position: .leading)
