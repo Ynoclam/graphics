@@ -56,32 +56,38 @@ final class StockViewModel: ObservableObject {
 
 struct ContentView: View {
     @StateObject private var viewModel = StockViewModel()
-    
+    @State private var startDate: Date = Calendar.current.date(from: DateComponents(year: 2025, month: 1, day: 1))!
+    @State private var endDate: Date = Date()
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
                 Text("Цена закрытия")
                     .font(.headline)
                     .padding(.leading)
-                
+
+                HStack {
+                    DatePicker("c", selection: $startDate, displayedComponents: .date)
+                    DatePicker("по", selection: $endDate, displayedComponents: .date)
+                }
+                .padding(.horizontal)
+
                 if viewModel.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if viewModel.stocks.isEmpty {
-                    Text("Нет данных для отображения")
+                    Text("нет данных")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     Chart {
                         ForEach(
                             viewModel.stocks.compactMap { item -> (Date, Double)? in
-                                guard
-                                    let date = item.time,
-                                    Calendar.current.component(.year, from: date) == 2025
-                                else {
-                                    return nil
+                                guard let date = item.time else { return nil }
+                                if date >= startDate && date <= endDate {
+                                    return (date, item.price)
                                 }
-                                return (date, item.price)
+                                return nil
                             },
                             id: \.0
                         ) { date, close in
@@ -102,6 +108,13 @@ struct ContentView: View {
                     }
                     .chartYAxis {
                         AxisMarks(position: .leading)
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .month)) { value in
+                            AxisGridLine()
+                            AxisTick()
+                            AxisValueLabel(format: .dateTime.month(.abbreviated))
+                        }
                     }
                     .frame(height: 300)
                     .padding()
