@@ -61,63 +61,72 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading) {
-                Text("Цена закрытия")
-                    .font(.headline)
-                    .padding(.leading)
+            ScrollView([.vertical, .horizontal]) {
+                VStack(alignment: .leading) {
+                    Text("Цена закрытия")
+                        .font(.headline)
+                        .padding(.leading)
 
-                HStack {
-                    DatePicker("c", selection: $startDate, displayedComponents: .date)
-                    DatePicker("по", selection: $endDate, displayedComponents: .date)
-                }
-                .padding(.horizontal)
+                    HStack {
+                        DatePicker("С", selection: $startDate, displayedComponents: .date)
+                        DatePicker("по", selection: $endDate, displayedComponents: .date)
+                    }
+                    .padding(.horizontal)
 
-                if viewModel.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.stocks.isEmpty {
-                    Text("нет данных")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    Chart {
-                        ForEach(
-                            viewModel.stocks.compactMap { item -> (Date, Double)? in
-                                guard let date = item.time else { return nil }
-                                if date >= startDate && date <= endDate {
-                                    return (date, item.price)
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if viewModel.stocks.isEmpty {
+                        Text("Нет данных для отображения")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        Chart {
+                            ForEach(
+                                viewModel.stocks.compactMap { item -> (Date, Double)? in
+                                    guard let date = item.time else { return nil }
+                                    if date >= startDate && date <= endDate {
+                                        return (date, item.price)
+                                    }
+                                    return nil
+                                },
+                                id: \.0
+                            ) { date, close in
+                                LineMark(
+                                    x: .value("Дата", date),
+                                    y: .value("Цена", close)
+                                )
+                                .interpolationMethod(.catmullRom)
+                                .lineStyle(.init(lineWidth: 3))
+
+                                AreaMark(
+                                    x: .value("Дата", date),
+                                    y: .value("Цена", close)
+                                )
+                                .interpolationMethod(.catmullRom)
+                                .opacity(0.2)
+                            }
+                        }
+                        .chartXAxis {
+                            AxisMarks(values: .stride(by: .day)) { value in
+                                AxisGridLine()
+                                AxisTick()
+                                AxisValueLabel(format: .dateTime.day(.defaultDigits))
+                            }
+                        }
+                        .chartYAxis {
+                            if let minPrice = viewModel.stocks.map({ $0.price }).min(),
+                               let maxPrice = viewModel.stocks.map({ $0.price }).max() {
+                                AxisMarks(values: Array(stride(from: minPrice, through: maxPrice, by: 1))) { value in
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel()
                                 }
-                                return nil
-                            },
-                            id: \.0
-                        ) { date, close in
-                            LineMark(
-                                x: .value("Дата", date),
-                                y: .value("Цена", close)
-                            )
-                            .interpolationMethod(.catmullRom)
-                            .lineStyle(.init(lineWidth: 3))
-                            
-                            AreaMark(
-                                x: .value("Дата", date),
-                                y: .value("Цена", close)
-                            )
-                            .interpolationMethod(.catmullRom)
-                            .opacity(0.2)
+                            }
                         }
+                        .frame(width: 1200, height: 600)
+                        .padding()
                     }
-                    .chartYAxis {
-                        AxisMarks(position: .leading)
-                    }
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .month)) { value in
-                            AxisGridLine()
-                            AxisTick()
-                            AxisValueLabel(format: .dateTime.month(.abbreviated))
-                        }
-                    }
-                    .frame(height: 300)
-                    .padding()
                 }
             }
             .navigationTitle("Swift Charts Example")
