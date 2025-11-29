@@ -55,43 +55,49 @@ final class StockViewModel: ObservableObject {
 }
 
 struct ContentView: View {
+    @Binding var selectionDate: Date?
     @StateObject private var viewModel = StockViewModel()
-    @State private var startDate: Date = Calendar.current.date(from: DateComponents(year: 2025, month: 1, day: 1))!
-    @State private var endDate: Date = Date()
+    private let minDate = Calendar.current.date(
+        from: DateComponents(year: 2020, month: 1, day: 1))!
+    @State private var startDate = Calendar.current.date(
+        from: DateComponents(year: 2025, month: 1, day: 1))!
+    @State private var endDate = Date()
 
     var body: some View {
         NavigationStack {
-            ScrollView([.vertical, .horizontal]) {
-                VStack(alignment: .leading) {
-                    Text("Цена закрытия")
-                        .font(.headline)
-                        .padding(.leading)
+            VStack(alignment: .leading) {
 
-                    HStack {
-                        DatePicker("С", selection: $startDate, displayedComponents: .date)
-                        DatePicker("по", selection: $endDate, displayedComponents: .date)
-                    }
-                    .padding(.horizontal)
+                Text("Цена закрытия")
+                    .font(.headline)
+                    .padding(.leading)
 
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if viewModel.stocks.isEmpty {
-                        Text("Нет данных для отображения")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
+                HStack {
+                    DatePicker(
+                        "С",selection: $startDate,
+                        in: minDate...endDate,
+                        displayedComponents: .date
+                    )
+
+                    DatePicker(
+                        "по",selection: $endDate,
+                        in: startDate...Date(),
+                        displayedComponents: .date
+                    )
+                }
+                .padding(.horizontal)
+
+                if viewModel.isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                } else if viewModel.stocks.isEmpty {
+                    Text("Нет данных для отображения")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                } else {
                         Chart {
-                            ForEach(
-                                viewModel.stocks.compactMap { item -> (Date, Double)? in
-                                    guard let date = item.time else { return nil }
-                                    if date >= startDate && date <= endDate {
-                                        return (date, item.price)
-                                    }
-                                    return nil
-                                },
-                                id: \.0
-                            ) { date, close in
+                            ForEach(filtered, id: \.0) { date, close in
                                 LineMark(
                                     x: .value("Дата", date),
                                     y: .value("Цена", close)
@@ -107,6 +113,9 @@ struct ContentView: View {
                                 .opacity(0.2)
                             }
                         }
+                        .chartScrollableAxes(.horizontal)
+                        .chartXVisibleDomain(length: 3600*24*7)
+                        .chartXSelection(value: $selectionDate)
                         .chartXAxis {
                             AxisMarks(values: .stride(by: .day)) { value in
                                 AxisGridLine()
@@ -115,18 +124,11 @@ struct ContentView: View {
                             }
                         }
                         .chartYAxis {
-                            if let minPrice = viewModel.stocks.map({ $0.price }).min(),
-                               let maxPrice = viewModel.stocks.map({ $0.price }).max() {
-                                AxisMarks(values: Array(stride(from: minPrice, through: maxPrice, by: 1))) { value in
-                                    AxisGridLine()
-                                    AxisTick()
-                                    AxisValueLabel()
-                                }
-                            }
+                            AxisMarks(position: .leading)
                         }
                         .frame(width: 1200, height: 600)
                         .padding()
-                    }
+                       
                 }
             }
             .navigationTitle("Swift Charts Example")
@@ -135,17 +137,28 @@ struct ContentView: View {
             }
         }
     }
+   
+
+    var filtered: [(Date, Double)] {
+        viewModel.stocks.compactMap { item in
+            guard let date = item.time else { return nil }
+            if date >= startDate && date <= endDate {
+                return (date, item.price)
+            }
+            return nil
+        }
+    }
 }
 
 
 struct FinanceChartApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(selectionDate: .constant(Date()))
         }
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(selectionDate: .constant(Date()))
 }
