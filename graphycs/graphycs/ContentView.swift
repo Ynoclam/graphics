@@ -96,6 +96,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 } else {
+                    ScrollView([.vertical, .horizontal]) {
                         Chart {
                             ForEach(filtered, id: \.0) { date, close in
                                 LineMark(
@@ -104,7 +105,7 @@ struct ContentView: View {
                                 )
                                 .interpolationMethod(.catmullRom)
                                 .lineStyle(.init(lineWidth: 3))
-
+                                
                                 AreaMark(
                                     x: .value("Дата", date),
                                     y: .value("Цена", close)
@@ -112,23 +113,41 @@ struct ContentView: View {
                                 .interpolationMethod(.catmullRom)
                                 .opacity(0.2)
                             }
+                            if let selectionDate {
+                                RuleMark(x: .value("Selected", selectionDate))
+                                    .foregroundStyle(.gray)
+                                    .lineStyle(.init(lineWidth: 2, dash: [4]))
+                                    .annotation(position: .top) {
+                                        if let item = filtered.first(where: { Calendar.current.isDate($0.0, inSameDayAs: selectionDate) }) {
+                                            VStack(spacing: 6) {
+                                                Text(item.0.formatted(date: .abbreviated, time: .omitted))
+                                                    .font(.caption)
+                                                Text(String(format: "%.2f", item.1))
+                                                    .font(.headline)
+                                            }
+                                            .padding(6)
+                                            .background(.thinMaterial)
+                                            .cornerRadius(6)
+                                        }
+                                    }
+                            }
                         }
                         .chartScrollableAxes(.horizontal)
-                        .chartXVisibleDomain(length: 3600*24*7)
+                        .chartXVisibleDomain(length: 3600*24*7*30)
                         .chartXSelection(value: $selectionDate)
                         .chartXAxis {
-                            AxisMarks(values: .stride(by: .day)) { value in
+                            AxisMarks(values: .stride(by: .month)) { value in
                                 AxisGridLine()
                                 AxisTick()
-                                AxisValueLabel(format: .dateTime.day(.defaultDigits))
+                                AxisValueLabel(format: .dateTime.month(.abbreviated))
                             }
                         }
                         .chartYAxis {
                             AxisMarks(position: .leading)
                         }
-                        .frame(width: 1200, height: 600)
+                        .frame(minWidth: UIScreen.main.bounds.width,minHeight: 600)
                         .padding()
-                       
+                    }
                 }
             }
             .navigationTitle("Swift Charts Example")
