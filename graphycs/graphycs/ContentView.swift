@@ -62,6 +62,7 @@ struct ContentView: View {
     @State private var startDate = Calendar.current.date(
         from: DateComponents(year: 2025, month: 1, day: 1))!
     @State private var endDate = Date()
+    @State private var selectedWeekIndex: Int = -1
 
     var body: some View {
         NavigationStack {
@@ -73,13 +74,15 @@ struct ContentView: View {
 
                 HStack {
                     DatePicker(
-                        "С",selection: $startDate,
+                        "С",
+                        selection: $startDate,
                         in: minDate...endDate,
                         displayedComponents: .date
                     )
 
                     DatePicker(
-                        "по",selection: $endDate,
+                        "по",
+                        selection: $endDate,
                         in: startDate...Date(),
                         displayedComponents: .date
                     )
@@ -96,9 +99,17 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 } else {
+                    Picker("Неделя", selection: $selectedWeekIndex) {
+                        Text("Все время").tag(-1)
+                        ForEach(filteredWeeks.indices, id: \.self) { index in
+                            Text("Неделя \(index + 1)").tag(index)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .padding(.horizontal)
                     ScrollView([.vertical, .horizontal]) {
                         Chart {
-                            ForEach(filtered, id: \.0) { date, close in
+                            ForEach(selectedWeekData, id: \.0) { date, close in
                                 LineMark(
                                     x: .value("Дата", date),
                                     y: .value("Цена", close)
@@ -113,39 +124,17 @@ struct ContentView: View {
                                 .interpolationMethod(.catmullRom)
                                 .opacity(0.2)
                             }
-                            if let selectionDate {
-                                RuleMark(x: .value("Selected", selectionDate))
-                                    .foregroundStyle(.gray)
-                                    .lineStyle(.init(lineWidth: 2, dash: [4]))
-                                    .annotation(position: .top) {
-                                        if let item = filtered.first(where: { Calendar.current.isDate($0.0, inSameDayAs: selectionDate) }) {
-                                            VStack(spacing: 6) {
-                                                Text(item.0.formatted(date: .abbreviated, time: .omitted))
-                                                    .font(.caption)
-                                                Text(String(format: "%.2f", item.1))
-                                                    .font(.headline)
-                                            }
-                                            .padding(6)
-                                            .background(.thinMaterial)
-                                            .cornerRadius(6)
-                                        }
-                                    }
-                            }
                         }
                         .chartScrollableAxes(.horizontal)
-                        .chartXVisibleDomain(length: 3600*24*7*30)
+                        .chartXVisibleDomain(length: 3600 * 24 * 7)
                         .chartXSelection(value: $selectionDate)
-                        .chartXAxis {
-                            AxisMarks(values: .stride(by: .month)) { value in
-                                AxisGridLine()
-                                AxisTick()
-                                AxisValueLabel(format: .dateTime.month(.abbreviated))
-                            }
-                        }
                         .chartYAxis {
                             AxisMarks(position: .leading)
                         }
-                        .frame(minWidth: UIScreen.main.bounds.width,minHeight: 600)
+                        .frame(
+                            minWidth: UIScreen.main.bounds.width,
+                            minHeight: 600
+                        )
                         .padding()
                     }
                 }
@@ -156,7 +145,6 @@ struct ContentView: View {
             }
         }
     }
-   
 
     var filtered: [(Date, Double)] {
         viewModel.stocks.compactMap { item in
@@ -167,7 +155,19 @@ struct ContentView: View {
             return nil
         }
     }
-}
+
+    var filteredWeeks: [[(Date, Double)]] {
+        filtered.chunked(into: 5)
+    }
+
+    var selectedWeekData: [(Date, Double)] {
+        if selectedWeekIndex == -1 {
+            return filtered
+                    }
+                    guard filteredWeeks.indices.contains(selectedWeekIndex) else { return [] }
+                    return filteredWeeks[selectedWeekIndex]
+                }
+            }
 
 
 struct FinanceChartApp: App {
