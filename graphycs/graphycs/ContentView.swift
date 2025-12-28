@@ -62,7 +62,7 @@ struct ContentView: View {
     @State private var startDate = Calendar.current.date(
         from: DateComponents(year: 2025, month: 1, day: 1))!
     @State private var endDate = Date()
-    @State private var selectedWeekIndex: Int = -1
+    @State private var selectedMode = 0
 
     var body: some View {
         NavigationStack {
@@ -71,7 +71,14 @@ struct ContentView: View {
                 Text("Цена закрытия")
                     .font(.headline)
                     .padding(.leading)
-
+                
+                Picker("Период", selection: $selectedMode) {
+                    Text("Недели").tag(0)
+                    Text("Месяцы").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                
                 HStack {
                     DatePicker(
                         "С",
@@ -99,17 +106,9 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 } else {
-                    Picker("Неделя", selection: $selectedWeekIndex) {
-                        Text("Все время").tag(-1)
-                        ForEach(filteredWeeks.indices, id: \.self) { index in
-                            Text("Неделя \(index + 1)").tag(index)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .padding(.horizontal)
                     ScrollView([.vertical, .horizontal]) {
                         Chart {
-                            ForEach(selectedWeekData, id: \.0) { date, close in
+                            ForEach(chartData, id: \.0) { date, close in
                                 LineMark(
                                     x: .value("Дата", date),
                                     y: .value("Цена", close)
@@ -126,15 +125,18 @@ struct ContentView: View {
                             }
                         }
                         .chartScrollableAxes(.horizontal)
-                        .chartXVisibleDomain(length: 3600 * 24 * 7)
                         .chartXSelection(value: $selectionDate)
                         .chartYAxis {
                             AxisMarks(position: .leading)
                         }
-                        .frame(
-                            minWidth: UIScreen.main.bounds.width,
-                            minHeight: 600
-                        )
+                        .chartXAxis {
+                            AxisMarks(values: .stride(by: .month)) { value in
+                                AxisGridLine()
+                                AxisTick()
+                                AxisValueLabel(format: .dateTime.month(.abbreviated))
+                            }
+                        }
+                        .frame(minWidth: UIScreen.main.bounds.width, minHeight: 600)
                         .padding()
                     }
                 }
@@ -156,17 +158,42 @@ struct ContentView: View {
         }
     }
 
-    var filteredWeeks: [[(Date, Double)]] {
-        filtered.chunked(into: 5)
+    var filteredWeeks: [(Date, Double)] {
+        var result: [(Date, Double)] = []
+        let weeks = filtered.chunked(into: 5)
+        for week in weeks {
+            var sum: Double = 0
+            for item in week {
+                sum += item.1
+            }
+            let average = sum / Double(week.count)
+            let date = week[0].0
+            result.append((date, average))
+        }
+        return result
     }
 
-    var selectedWeekData: [(Date, Double)] {
-        if selectedWeekIndex == -1 {
-            return filtered
-                    }
-                    guard filteredWeeks.indices.contains(selectedWeekIndex) else { return [] }
-                    return filteredWeeks[selectedWeekIndex]
-                }
+    var filteredMonths: [(Date, Double)] {
+        var result: [(Date, Double)] = []
+        let months = filtered.chunked(into: 20)
+        for month in months {
+            var sum: Double = 0
+            for item in month {
+                sum += item.1
+            }
+            let average = sum / Double(month.count)
+            let date = month[0].0
+            result.append((date, average))
+        }
+        return result
+    }
+    var chartData: [(Date, Double)] {
+        if selectedMode == 0 {
+            return filteredWeeks
+        } else {
+            return filteredMonths
+        }
+    }
             }
 
 
