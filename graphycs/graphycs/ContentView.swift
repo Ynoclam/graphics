@@ -116,6 +116,11 @@ struct ContentView: View {
                                 .interpolationMethod(.catmullRom)
                                 .lineStyle(.init(lineWidth: 3))
                                 
+                                PointMark(
+                                    x: .value("Дата", date),
+                                    y: .value("Цена", close)
+                                )
+                                	
                                 AreaMark(
                                     x: .value("Дата", date),
                                     y: .value("Цена", close)
