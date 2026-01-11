@@ -128,7 +128,26 @@ struct ContentView: View {
                                 .interpolationMethod(.catmullRom)
                                 .opacity(0.2)
                             }
+                            if let selectionDate{
+                                RuleMark(
+                                    x: .value("selected", selectionDate, unit: .day)
+                                )
+                                .foregroundStyle(Color.gray.opacity(0.3))
+                                .offset(yStart: -10)
+                                .zIndex(-1)
+                                .annotation(
+                                    position: .top, spacing:0,
+                                    overflowResolution: .init(
+                                        x: .fit(to: .chart),
+                                        y: .disabled
+                                    )
+                                     ){
+                                        Text("valueSelectionPopover")
+                                    }
+                            }
                         }
+                        .onAppear{print(selectionDate)}
+                        .chartXVisibleDomain(length: 3600*24*12*30)
                         .chartScrollableAxes(.horizontal)
                         .chartXSelection(value: $selectionDate)
                         .chartYAxis {
@@ -152,7 +171,6 @@ struct ContentView: View {
             }
         }
     }
-
     var filtered: [(Date, Double)] {
         viewModel.stocks.compactMap { item in
             guard let date = item.time else { return nil }
