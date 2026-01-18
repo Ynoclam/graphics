@@ -63,7 +63,7 @@ struct ContentView: View {
         from: DateComponents(year: 2025, month: 1, day: 1))!
     @State private var endDate = Date()
     @State private var selectedMode = 0
-
+    @State private var selectedDate: Date?
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
@@ -106,7 +106,6 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 } else {
-                    ScrollView([.vertical, .horizontal]) {
                         Chart {
                             ForEach(chartData, id: \.0) { date, close in
                                 LineMark(
@@ -128,9 +127,9 @@ struct ContentView: View {
                                 .interpolationMethod(.catmullRom)
                                 .opacity(0.2)
                             }
-                            if let selectionDate{
+                            if let selectedDate{
                                 RuleMark(
-                                    x: .value("selected", selectionDate, unit: .day)
+                                    x: .value("selected", selectedDate, unit: .day)
                                 )
                                 .foregroundStyle(Color.gray.opacity(0.3))
                                 .offset(yStart: -10)
@@ -146,10 +145,10 @@ struct ContentView: View {
                                     }
                             }
                         }
-                        .onAppear{print(selectionDate)}
+                        //.onAppear{print(selectionDate)}
                         .chartXVisibleDomain(length: 3600*24*12*30)
                         .chartScrollableAxes(.horizontal)
-                        .chartXSelection(value: $selectionDate)
+                        .chartXSelection(value: $selectedDate)
                         .chartYAxis {
                             AxisMarks(position: .leading)
                         }
@@ -162,7 +161,7 @@ struct ContentView: View {
                         }
                         .frame(minWidth: UIScreen.main.bounds.width, minHeight: 600)
                         .padding()
-                    }
+                    
                 }
             }
             .navigationTitle("Swift Charts Example")
