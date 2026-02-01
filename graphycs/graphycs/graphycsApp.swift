@@ -11,7 +11,7 @@ import SwiftUI
 struct graphycsApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView(selectionDate: .constant(Date()))
+            ContentView()
         }
     }
 }

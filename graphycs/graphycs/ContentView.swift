@@ -55,7 +55,7 @@ final class StockViewModel: ObservableObject {
 }
 
 struct ContentView: View {
-    @Binding var selectionDate: Date?
+    //@Binding var selectionDate: Date?
     @StateObject private var viewModel = StockViewModel()
     private let minDate = Calendar.current.date(
         from: DateComponents(year: 2020, month: 1, day: 1))!
@@ -106,62 +106,10 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 } else {
-                        Chart {
-                            ForEach(chartData, id: \.0) { date, close in
-                                LineMark(
-                                    x: .value("Дата", date),
-                                    y: .value("Цена", close)
-                                )
-                                .interpolationMethod(.catmullRom)
-                                .lineStyle(.init(lineWidth: 3))
-                                
-                                PointMark(
-                                    x: .value("Дата", date),
-                                    y: .value("Цена", close)
-                                )
-                                	
-                                AreaMark(
-                                    x: .value("Дата", date),
-                                    y: .value("Цена", close)
-                                )
-                                .interpolationMethod(.catmullRom)
-                                .opacity(0.2)
-                            }
-                            if let selectedDate{
-                                RuleMark(
-                                    x: .value("selected", selectedDate, unit: .day)
-                                )
-                                .foregroundStyle(Color.gray.opacity(0.3))
-                                .offset(yStart: -10)
-                                .zIndex(-1)
-                                .annotation(
-                                    position: .top, spacing:0,
-                                    overflowResolution: .init(
-                                        x: .fit(to: .chart),
-                                        y: .disabled
-                                    )
-                                     ){
-                                        Text("valueSelectionPopover")
-                                    }
-                            }
-                        }
-                        //.onAppear{print(selectionDate)}
-                        .chartXVisibleDomain(length: 3600*24*12*30)
-                        .chartScrollableAxes(.horizontal)
-                        .chartXSelection(value: $selectedDate)
-                        .chartYAxis {
-                            AxisMarks(position: .leading)
-                        }
-                        .chartXAxis {
-                            AxisMarks(values: .stride(by: .month)) { value in
-                                AxisGridLine()
-                                AxisTick()
-                                AxisValueLabel(format: .dateTime.month(.abbreviated))
-                            }
-                        }
-                        .frame(minWidth: UIScreen.main.bounds.width, minHeight: 600)
-                        .padding()
-                    
+                    StockChartView(
+                        chartData: chartData,
+                        selectedDate: $selectedDate,
+                        selectedMode: selectedMode)
                 }
             }
             .navigationTitle("Swift Charts Example")
@@ -170,6 +118,9 @@ struct ContentView: View {
             }
         }
     }
+}
+
+extension ContentView{
     var filtered: [(Date, Double)] {
         viewModel.stocks.compactMap { item in
             guard let date = item.time else { return nil }
@@ -216,17 +167,86 @@ struct ContentView: View {
             return filteredMonths
         }
     }
+}
+struct StockChartView: View {
+    let chartData: [(Date, Double)]
+    @Binding var selectedDate: Date?
+    let selectedMode: Int
+    var body: some View {
+        Chart {
+            ForEach(chartData, id: \.0) { date, close in
+                LineMark(
+                    x: .value("Дата", date),
+                    y: .value("Цена", close)
+                )
+                .interpolationMethod(.catmullRom)
+                .lineStyle(.init(lineWidth: 3))
+                
+                PointMark(
+                    x: .value("Дата", date),
+                    y: .value("Цена", close)
+                )
+                    
+                AreaMark(
+                    x: .value("Дата", date),
+                    y: .value("Цена", close)
+                )
+                .interpolationMethod(.catmullRom)
+                .opacity(0.2)
+            }
+            if let selectedDate{
+                RuleMark(
+                    x: .value("selected", selectedDate, unit: .day)
+                )
+                .foregroundStyle(Color.gray.opacity(0.3))
+                .offset(yStart: -10)
+                .zIndex(-1)
+                .annotation(
+                    position: .top, spacing:0,
+                    overflowResolution: .init(
+                        x: .fit(to: .chart),
+                        y: .fit(to: .chart)
+                    )
+                     ){
+                         Text(selectedDate.formatted(date: .abbreviated, time: .omitted))
+                    }
+            }
+        }
+        .chartXVisibleDomain(length: 3600*24*6*30)
+        .chartScrollableAxes(.horizontal)
+        .chartXSelection(value: $selectedDate)
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+    chartXAxis {
+        if selectedMode == 0 {
+            AxisMarks(values: .stride(by: .weekOfYear)) { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel(format: .dateTime.day().month())
+            }
+        } else {
+            AxisMarks(values: .stride(by: .month)) { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel(format: .dateTime.month())
             }
 
+        }
+    }
+       
+        .padding()
+    }
+}
 
 struct FinanceChartApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView(selectionDate: .constant(Date()))
+         ContentView()
         }
     }
 }
 
 #Preview {
-    ContentView(selectionDate: .constant(Date()))
+    ContentView()
 }
