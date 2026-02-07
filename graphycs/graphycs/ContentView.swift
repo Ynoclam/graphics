@@ -207,9 +207,23 @@ struct StockChartView: View {
                         x: .fit(to: .chart),
                         y: .fit(to: .chart)
                     )
-                     ){
-                         Text(selectedDate.formatted(date: .abbreviated, time: .omitted))
+                ){
+
+                    if let item = chartData.first(where: {
+                        Calendar.current.isDate($0.0, inSameDayAs: selectedDate)
+                    }) {
+                        VStack(spacing: 4) {
+                            Text(
+                                item.0.formatted(
+                                    date: .abbreviated,
+                                    time: .omitted))
+                        Text(
+                                item.1.formatted(
+                                    .number.precision(.fractionLength(2))))
+                        }
+                        .padding(6)
                     }
+                }
             }
         }
         .chartXVisibleDomain(length: 3600*24*6*30)
@@ -218,7 +232,7 @@ struct StockChartView: View {
         .chartYAxis {
             AxisMarks(position: .leading)
         }
-    chartXAxis {
+        .chartXAxis {
         if selectedMode == 0 {
             AxisMarks(values: .stride(by: .weekOfYear)) { value in
                 AxisGridLine()
